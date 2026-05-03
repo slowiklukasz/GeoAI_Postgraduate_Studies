@@ -48,8 +48,6 @@ prepare_forest_data <- function(df_input, year_suffix) {
 #' @param df_2025 Przetworzone dane z roku 2025.
 #' 
 #' @return Tabela porównawcza (Master Table) zawierająca wartości bazowe i różnice.
-#' 
-#' @export
 create_comparison_table <- function(df_2015, df_2025) {
   
   # Łączenie tabel po unikalnym ID (Inner Join zostawia tylko wspólne rekordy)
