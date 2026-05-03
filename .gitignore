@@ -1,0 +1,24 @@
+###############################
+##### 2.1. R programming ######
+###############################
+
+# --- R-specific files ---
+# Ignoruje pliki sesji, które widzę u Ciebie na zielono (.RData, .Rhistory)
+**/.RData
+**/.RDataTmp
+**/.Rhistory
+**/.Rproj.user/
+
+# --- Data & Archives ---
+# Ignoruje folder data (widzę go w projekt_zaliczeniowy)
+**/data/
+**/*.zip
+**/*.tar.gz
+
+# --- Output ---
+# Ignoruje folder z wynikami, który stworzy skrypt
+**/output/
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
