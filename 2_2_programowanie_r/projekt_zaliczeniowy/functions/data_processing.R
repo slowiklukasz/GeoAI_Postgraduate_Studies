@@ -13,9 +13,15 @@
 prepare_forest_data <- function(df_input, year_suffix) {
   
   processed <- df_input %>%
-    # Usunięcie białych znaków i konwersja typów (zabezpieczenie spójności)
+    # mutate() modyfikuje lub tworzy nowe kolumny
     mutate(
+      # storey_cd: Kod warstwy lasu (np. "DRZEW" - drzewostan, "NAL" - nalot).
+      # as.character(): Rzutowanie na string; zapobiega błędom typu 'factor'.
+      # trimws(): Odpowiednik Pythona .strip(); usuwa spacje, np. zamienia "DRZEW " na "DRZEW".
       storey_cd = trimws(as.character(storey_cd)),
+      
+      # sp_rank_order_act: Ranga gatunku (1 = panujący/dominujący, 2,3... = domieszkowe).
+      # as.numeric(): Konwersja na liczbę; gwarantuje, że filtr (== 1) zadziała matematycznie.
       sp_rank_order_act = as.numeric(sp_rank_order_act)
     ) %>%
     # Filtracja: tylko piętro główne (DRZEW) i gatunek dominujący (Ranga 1)
