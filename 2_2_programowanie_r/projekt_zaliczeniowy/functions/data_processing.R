@@ -2,67 +2,91 @@
 # DATA PROCESSING - MODUŁ PRZETWARZANIA DANYCH
 # =========================================================================
 
-# 1. Przygotowanie danych jednostkowych dla konkretnego roku
-# Filtruje dane do gatunku panującego i zmienia nazwy na angielskie (SOTA)
+#' Przygotowanie danych leśnych (Pre-processing)
+#' 
+#' @description Filtruje surowe dane taksacyjne BDL do poziomu drzewostanu głównego.
+#' 
+#' @param df_input Surowa tabela wczytana z pliku f_storey_species.txt.
+#' @param year_suffix Rok danych (np. "2015"), używany jako sufiks kolumn.
+#' 
+#' @return Obiekt klasy data.frame z ujednoliconymi nazwami i unikalnym kluczem ID.
 prepare_forest_data <- function(df_input, year_suffix) {
   
   processed <- df_input %>%
-    # Czyszczenie tekstów i konwersja typów (zabezpieczenie przed błędami BDL)
+    # Usunięcie białych znaków i konwersja typów (zabezpieczenie spójności)
     mutate(
       storey_cd = trimws(as.character(storey_cd)),
       sp_rank_order_act = as.numeric(sp_rank_order_act)
     ) %>%
-    # Filtrowanie: tylko drzewostan główny i gatunek dominujący (Ranga 1)
+    # Filtracja: tylko piętro główne (DRZEW) i gatunek dominujący (Ranga 1)
     filter(storey_cd == "DRZEW", sp_rank_order_act == 1) %>%
-    # Wybór kolumn i ujednolicenie nazw na angielski (dla spójności z wizualizacją)
+    # Mapowanie technicznych nazw BDL na czytelne nazwy angielskie
     select(
-      id = arodes_int_num,
-      species = species_cd,
-      age = species_age,
-      height = height,
-      dbh = bhd,
-      volume = volume
+      id = arodes_int_num,      # Numer porządkowy wydzielenia
+      species = species_cd,     # Kod gatunku (np. SO = sosna, BK = buk)
+      age = species_age,        # Wiek drzewostanu dla danego gatunku
+      height = height,          # Przeciętna wysokość [m]
+      dbh = bhd,                # Przeciętna pierśnica (średnica) [cm]
+      volume = volume           # Miąższość (zasobność) [m3/ha]
     ) %>%
-    # Konwersja ID na tekst, aby Join w kolejnym kroku był bezpieczny
+    # Konwersja ID na tekst (niezbędne do poprawnego działania Inner Join)
     mutate(id = as.character(id))
   
-  # Dynamiczne dodanie roku do nazw kolumn (np. height_2015)
-  # Pozwala na uniknięcie konfliktów po złączeniu tabel
+  # Dynamiczne dodanie roku do nazw kolumn (np. height -> height_2015)
+  # Unikamy dzięki temu konfliktów nazw po złączeniu tabel z obu lat
   colnames(processed)[2:6] <- paste0(colnames(processed)[2:6], "_", year_suffix)
   
   return(processed)
 }
 
-# 2. Tworzenie tabeli porównawczej (Master Table)
-# Łączy dwa lata i oblicza przyrosty (Deltas)
-create_comparison_table <- function(df_early, df_late) {
+
+#' Tworzenie zestawienia porównawczego (Calculation of Deltas)
+#' 
+#' @description Łączy dane z dwóch lat i oblicza zmiany cech taksacyjnych.
+#' 
+#' @param df_2015 Przetworzone dane z roku 2015.
+#' @param df_2025 Przetworzone dane z roku 2025.
+#' 
+#' @return Tabela porównawcza (Master Table) zawierająca wartości bazowe i różnice.
+#' 
+#' @export
+create_comparison_table <- function(df_2015, df_2025) {
   
-  # Łączenie tabel po unikalnym kluczu ID (Inner Join zostawia tylko wspólne rekordy)
-  comparison <- df_early %>%
-    inner_join(df_late, by = "id")
+  # Łączenie tabel po unikalnym ID (Inner Join zostawia tylko wspólne rekordy)
+  comparison <- df_2015 %>%
+    inner_join(df_2025, by = "id")
   
-  # Obliczanie różnic (Deltas) i flagowanie zmian gatunkowych
-  # Zakładamy, że sufiksy to 2015 i 2025 (zgodnie z main.R)
+  # Obliczanie różnic (Deltas) i flagowanie zmian składu
   comparison <- comparison %>%
     mutate(
-      diff_height = height_2025 - height_2015,
-      diff_volume = volume_2025 - volume_2015,
-      diff_dbh    = dbh_2025 - dbh_2015,
-      # Sprawdzenie czy nastąpiła zmiana gatunku panującego
+      diff_height = height_2025 - height_2015,   # Przyrost wysokości
+      diff_volume = volume_2025 - volume_2015,   # Zmiana zasobności
+      diff_dbh    = dbh_2025 - dbh_2015,         # Przyrost grubości (pierśnicy)
+      # Logiczna weryfikacja czy kod gatunku uległ zmianie (YES/NO)
       species_change = if_else(species_2015 != species_2025, "YES", "NO")
     )
   
   return(comparison)
 }
 
-# 3. Pobieranie powierzchni z warstwy geometrycznej (Helper)
-# Przydatne do szybkich analiz przestrzennych poza ggplot
+
+#' Ekstrakcja danych o powierzchniach z warstwy SHP
+#' 
+#' @description Przygotowuje tabelę powierzchni do analiz statystycznych (bez geometrii).
+#' 
+#' @param wydz_layer Obiekt klasy sf wczytany z pliku .shp.
+#' 
+#' @return Dataframe zawierający ID wydzielenia oraz jego powierzchnię [ha].
 get_subarea_areas <- function(wydz_layer) {
   
   areas <- wydz_layer %>%
+    # Usunięcie geometrii - zamiana obiektu mapowego na zwykłą tabelę (jak w Pandas)
     st_drop_geometry() %>%
-    # BDL w plikach SHP skraca nazwę arodes_int_num do a_i_num
-    select(id = a_i_num, area_ha = area) %>% 
+    # a_i_num to skrócona przez system SHP nazwa pola arodes_int_num
+    select(
+      id = a_i_num,     # ID zgodne z kluczem w plikach tekstowych
+      area_ha = area    # Powierzchnia wydzielenia wyrażona w hektarach
+    ) %>% 
     mutate(id = as.character(id))
   
   return(areas)

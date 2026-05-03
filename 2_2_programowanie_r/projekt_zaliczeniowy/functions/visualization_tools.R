@@ -2,27 +2,44 @@
 # VISUALIZATION TOOLS - MODUŁ WIZUALIZACJI
 # =========================================================================
 
-# 1. Funkcja pomocnicza do ujednoliconego eksportu wykresów
-# Domyślnie zapisuje w DIR_PLOTS zdefiniowanym w main.R
+#' Eksport wykresów do plików graficznych
+#' 
+#' @description Standaryzuje proces zapisu grafik ggplot2, wymuszając wysoką jakość (300 DPI) 
+#' i ujednolicone wymiary.
+#' 
+#' @param plot_obj Obiekt klasy ggplot do zapisu.
+#' @param filename Nazwa pliku wyjściowego (np. "wykres.png").
+#' @param folder Ścieżka do katalogu zapisu (domyślnie DIR_PLOTS).
+#' @param w Szerokość obrazu w calach (domyślnie 10).
+#' @param h Wysokość obrazu w calach (domyślnie 6).
 save_plot <- function(plot_obj, filename, folder = DIR_PLOTS, w = 10, h = 6) {
   full_path <- file.path(folder, filename)
   
-  # Zapis za pomocą ggsave (300 DPI zapewnia jakość do druku)
+  # Zapis za pomocą ggsave - 300 DPI to standard dla publikacji naukowych i raportów
   ggsave(
     filename = full_path, 
     plot = plot_obj, 
     width = w, 
     height = h, 
     dpi = 300, 
-    bg = "white"
+    bg = "white" # Wymuszenie białego tła (zabezpieczenie przed przezroczystością)
   )
   message("Eksportowano produkt graficzny: ", filename)
 }
 
-# 2. Porównanie rozkładów (Histogramy: Wiek, Wysokość, Miąższość)
+#' Porównanie rozkładów cech taksacyjnych (Histogramy)
+#' 
+#' @description Generuje nakładane na siebie histogramy dla dwóch lat, pozwalając na 
+#' wizualną ocenę przesunięcia trendów (np. wzrostu wysokości lub starzenia się lasu).
+#' 
+#' @param df_2015 Dane przetworzone z roku 2015.
+#' @param df_2025 Dane przetworzone z roku 2025.
+#' @param variable_prefix Nazwa cechy (np. "height", "age").
+#' @param title Tytuł wykresu.
+#' @param unit Jednostka miary do wyświetlenia na osi X.
 plot_structure_comparison <- function(df_2015, df_2025, variable_prefix, title, unit) {
   
-  # Przygotowanie danych - dynamiczne wybieranie kolumn i ujednolicanie nazw
+  # 1. Przygotowanie danych (Selekcja kolumn o określonym prefiksie)
   d1 <- df_2015 %>% 
     select(id, value = starts_with(variable_prefix)) %>% 
     mutate(year = "2015")
@@ -31,10 +48,12 @@ plot_structure_comparison <- function(df_2015, df_2025, variable_prefix, title, 
     select(id, value = starts_with(variable_prefix)) %>% 
     mutate(year = "2025")
   
+  # Połączenie wierszowe (format 'long' idealny dla ggplot2)
   plot_data <- bind_rows(d1, d2)
   
-  # Tworzenie histogramu z nałożonymi kolorami (alpha = 0.5)
+  # 2. Budowa wykresu
   ggplot(plot_data, aes(x = value, fill = year)) +
+    # position = "identity" pozwala na nakładanie słupków na siebie
     geom_histogram(position = "identity", alpha = 0.5, bins = 30, color = "white") +
     labs(
       title = title, 
@@ -43,14 +62,22 @@ plot_structure_comparison <- function(df_2015, df_2025, variable_prefix, title, 
       fill = "Rok"
     ) +
     theme_minimal() +
+    # Ujednolicona kolorystyka dla lat
     scale_fill_manual(values = c("2015" = "steelblue", "2025" = "darkgreen"))
 }
 
-# 3. Zmiana powierzchniowa gatunków dominujących (w hektarach)
+#' Analiza zmian powierzchniowych gatunków dominujących
+#' 
+#' @description Oblicza sumaryczną powierzchnię (w ha) dla każdego gatunku na podstawie 
+#' geometrii wydzieleń i porównuje ją między latami na wykresie słupkowym.
+#' 
+#' @param df_2015 Dane atrybutowe 2015.
+#' @param df_2025 Dane atrybutowe 2025.
+#' @param map_2015 Warstwa geometryczna 2015.
+#' @param map_2025 Warstwa geometryczna 2025.
 plot_species_area_change <- function(df_2015, df_2025, map_2015, map_2025) {
   
-  # Obliczanie powierzchni z geometrii (przeliczenie na ha)
-  # Używamy a_i_num jako klucza ID dla warstw wektorowych
+  # 1. Obliczanie realnej powierzchni [ha] z geometrii (st_area)
   area_15 <- map_2015 %>% 
     mutate(area_ha = as.numeric(st_area(.)) / 10000) %>% 
     st_drop_geometry() %>% 
@@ -63,7 +90,7 @@ plot_species_area_change <- function(df_2015, df_2025, map_2015, map_2025) {
     select(id = a_i_num, area_ha) %>% 
     mutate(id = as.character(id))
   
-  # Przetwarzanie 2015 - selekcja kolumn przed grupowaniem (naprawa błędu starts_with)
+  # 2. Agregacja powierzchni wg gatunków (2015)
   s1 <- df_2015 %>% 
     left_join(area_15, by = "id") %>% 
     select(species = starts_with("species"), area_ha) %>% 
@@ -71,7 +98,7 @@ plot_species_area_change <- function(df_2015, df_2025, map_2015, map_2025) {
     summarise(total_area = sum(area_ha, na.rm = TRUE)) %>% 
     mutate(year = "2015")
   
-  # Przetwarzanie 2025
+  # 3. Agregacja powierzchni wg gatunków (2025)
   s2 <- df_2025 %>% 
     left_join(area_25, by = "id") %>% 
     select(species = starts_with("species"), area_ha) %>% 
@@ -79,7 +106,7 @@ plot_species_area_change <- function(df_2015, df_2025, map_2015, map_2025) {
     summarise(total_area = sum(area_ha, na.rm = TRUE)) %>% 
     mutate(year = "2025")
   
-  # Wykres słupkowy (Bar Chart) porównujący sumy powierzchni
+  # 4. Wykres słupkowy (Bar Chart) - reorder sortuje gatunki od najliczniejszego
   ggplot(bind_rows(s1, s2), aes(x = reorder(species, -total_area), y = total_area, fill = year)) +
     geom_bar(stat = "identity", position = "dodge") +
     labs(
@@ -92,17 +119,25 @@ plot_species_area_change <- function(df_2015, df_2025, map_2015, map_2025) {
     scale_fill_manual(values = c("2015" = "#feb24c", "2025" = "#f03b20"))
 }
 
-# 4. Szczegółowa struktura dla 5 głównych gatunków (Panele / Faceting)
+#' Rozkład cech w rozbiciu na główne gatunki (Panele)
+#' 
+#' @description Wykonuje analizę rozkładu dla 5 najliczniejszych gatunków, prezentując 
+#' wyniki w formie siatki wykresów (faceting).
+#' 
+#' @param df_2015 Dane 2015.
+#' @param df_2025 Dane 2025.
+#' @param variable_prefix Nazwa cechy (np. "age").
+#' @param unit Jednostka do opisu osi X.
 plot_structure_by_species <- function(df_2015, df_2025, variable_prefix, unit) {
   
-  # Identyfikacja 5 najliczniejszych gatunków z roku 2025
+  # 1. Wybór TOP 5 gatunków (wg liczby wydzieleń w 2025)
   top_species_list <- df_2025 %>% 
     select(sp = starts_with("species")) %>% 
     count(sp) %>% 
     slice_max(n, n = 5) %>% 
     pull(sp)
   
-  # Filtrowanie i przygotowanie danych do facetingu
+  # 2. Przygotowanie danych do podziału na panele
   d1 <- df_2015 %>% 
     select(id, species = starts_with("species"), value = starts_with(variable_prefix)) %>% 
     filter(species %in% top_species_list) %>% 
@@ -113,10 +148,10 @@ plot_structure_by_species <- function(df_2015, df_2025, variable_prefix, unit) {
     filter(species %in% top_species_list) %>% 
     mutate(year = "2025")
   
-  # Wykres panelowy (facet_wrap) - osobny histogram dla każdego gatunku
+  # 3. Wykres z użyciem facet_wrap (tworzy sub-ploty dla każdego gatunku)
   ggplot(bind_rows(d1, d2), aes(x = value, fill = year)) +
     geom_histogram(position = "identity", alpha = 0.5, bins = 20, color = "white") +
-    facet_wrap(~species, scales = "free_y") +
+    facet_wrap(~species, scales = "free_y") + # 'free_y' dopasowuje skalę Y do każdego gatunku
     labs(
       title = paste("Rozkład", variable_prefix, "dla głównych gatunków"), 
       x = unit, 
