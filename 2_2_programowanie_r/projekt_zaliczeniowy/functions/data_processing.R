@@ -18,7 +18,7 @@ prepare_forest_data <- function(df_input, year_suffix) {
       # storey_cd: Kod warstwy lasu (np. "DRZEW" - drzewostan, "NAL" - nalot).
       # as.character(): Rzutowanie na string; zapobiega błędom typu 'factor'.
       # trimws(): Odpowiednik Pythona .strip(); usuwa spacje, np. zamienia "DRZEW " na "DRZEW".
-      storey_cd = trimws(as.character(storey_cd)),
+      storey_cd = str_trim(as.character(storey_cd)),
       
       # sp_rank_order_act: Ranga gatunku (1 = panujący/dominujący, 2,3... = domieszkowe).
       # as.numeric(): Konwersja na liczbę; gwarantuje, że filtr (== 1) zadziała matematycznie.
@@ -78,12 +78,12 @@ create_comparison_table <- function(df_2015, df_2025) {
 #' 
 #' @description Przygotowuje tabelę powierzchni do analiz statystycznych (bez geometrii).
 #' 
-#' @param wydz_layer Obiekt klasy sf wczytany z pliku .shp.
+#' @param forest_layer Obiekt klasy sf wczytany z pliku .shp.
 #' 
 #' @return Dataframe zawierający ID wydzielenia oraz jego powierzchnię [ha].
-get_subarea_areas <- function(wydz_layer) {
+get_subarea_areas <- function(forest_layer) {
   
-  areas <- wydz_layer %>%
+  areas <- forest_layer %>%
     # Usunięcie geometrii - zamiana obiektu mapowego na zwykłą tabelę (jak w Pandas)
     st_drop_geometry() %>%
     # a_i_num to skrócona przez system SHP nazwa pola arodes_int_num

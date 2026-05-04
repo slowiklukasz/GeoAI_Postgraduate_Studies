@@ -2,39 +2,14 @@
 # VISUALIZATION TOOLS - MODUŁ WIZUALIZACJI
 # =========================================================================
 
-#' Eksport wykresów do plików graficznych
-#' 
-#' @description Standaryzuje proces zapisu grafik ggplot2, wymuszając wysoką jakość (300 DPI) 
-#' i ujednolicone wymiary.
-#' 
-#' @param plot_obj Obiekt klasy ggplot do zapisu.
-#' @param filename Nazwa pliku wyjściowego (np. "wykres.png").
-#' @param folder Ścieżka do katalogu zapisu (domyślnie DIR_PLOTS).
-#' @param w Szerokość obrazu w calach (domyślnie 10).
-#' @param h Wysokość obrazu w calach (domyślnie 6).
-save_plot <- function(plot_obj, filename, folder = DIR_PLOTS, w = 10, h = 6) {
-  full_path <- file.path(folder, filename)
-  
-  # Zapis za pomocą ggsave - 300 DPI to standard dla publikacji naukowych i raportów
-  ggsave(
-    filename = full_path, 
-    plot = plot_obj, 
-    width = w, 
-    height = h, 
-    dpi = 300, 
-    bg = "white" # Wymuszenie białego tła (zabezpieczenie przed przezroczystością)
-  )
-  message("Eksportowano produkt graficzny: ", filename)
-}
-
-#' Porównanie rozkładów cech taksacyjnych (Histogramy)
+#' Hitogramy rozkładów cech taksacyjnych
 #' 
 #' @description Generuje nakładane na siebie histogramy dla dwóch lat, pozwalając na 
-#' wizualną ocenę przesunięcia trendów (np. wzrostu wysokości lub starzenia się lasu).
+#' wizualną ocenę przesunięcia trendów wtbranych cech drzewostanu.
 #' 
 #' @param df_2015 Dane przetworzone z roku 2015.
 #' @param df_2025 Dane przetworzone z roku 2025.
-#' @param variable_prefix Nazwa cechy (np. "height", "age").
+#' @param variable_prefix Nazwa cechy taksacyjnej (np. "height", "age").
 #' @param title Tytuł wykresu.
 #' @param unit Jednostka miary do wyświetlenia na osi X.
 plot_structure_comparison <- function(df_2015, df_2025, variable_prefix, title, unit) {
