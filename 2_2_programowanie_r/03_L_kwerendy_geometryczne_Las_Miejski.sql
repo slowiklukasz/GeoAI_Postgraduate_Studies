@@ -33,35 +33,80 @@ CREATE INDEX idx_infra_local_geom ON temporary.L_infrastruktura_lokalna USING GI
 ANALYZE temporary.L_infrastruktura_lokalna;
 
 
----------------------------------------------------------------------------------------------------------------------------------------
--- Zapytanie SQL nr 2: Identyfikacja drzew zagrażających infrastrukturze (Bufor bezpieczeństwa 1.5 * H > D)
----------------------------------------------------------------------------------------------------------------------------------------
--- Cel analityczny: Wytypowanie segmentów drzew, których wysokość wraz z przyjętym marginesem bezpieczeństwa
---                  stwarza ryzyko dla ruchu turystycznego i infrastruktury.
--- Mechanizm:       Zastosowanie połączenia przestrzennego z dynamicznym buforem bezpieczeństwa.
--- Wynik:           Warstwa poligonowa "Drzewa zagrażające", zawierająca informację o typie najbliższego zagrożonego obiektu 
---                  o oraz odległości.
+-- ---------------------------------------------------------------------------------------------------------------------------------------
+-- -- Zapytanie SQL nr 2: Identyfikacja drzew zagrażających infrastrukturze (Bufor bezpieczeństwa 1.5 * H > D)
+-- ---------------------------------------------------------------------------------------------------------------------------------------
+-- -- Cel analityczny: Wytypowanie segmentów drzew, których wysokość wraz z przyjętym marginesem bezpieczeństwa
+-- --                  stwarza ryzyko dla ruchu turystycznego i infrastruktury.
+-- -- Mechanizm:       Zastosowanie połączenia przestrzennego z dynamicznym buforem bezpieczeństwa.
+-- -- Wynik:           Warstwa poligonowa "Drzewa zagrażające", zawierająca informację o typie najbliższego zagrożonego obiektu 
+-- --                  o oraz odległości.
 
--- KROK 1: Czyszczenie starej tabeli wynikowej
+-- -- KROK 1: Czyszczenie starej tabeli wynikowej
+-- DROP TABLE IF EXISTS analityka.L_drzewa_zagrazajace CASCADE;
+
+-- -- KROK 2: Selekcja unikalnych segmentów spełniających warunek zwiększonego zasięgu rażenia
+-- CREATE TABLE analityka.L_drzewa_zagrazajace AS
+-- SELECT DISTINCT ON (s.ogc_fid)
+--     ROW_NUMBER() OVER () AS id_qgis, -- Unikalny klucz dla QGIS
+--     s.ogc_fid AS segment_id,
+--     s.max_val AS wysokosc_m,
+--     i.typ AS zagrozenie_dla,
+--     ROUND(ST_Distance(s.wkb_geometry, i.wkb_geometry)::numeric, 2) AS dystans_m,
+--     ST_SetSRID(s.wkb_geometry, 2180)::geometry(MultiPolygon, 2180) AS wkb_geometry
+-- FROM raw.segments_2025 s
+-- -- ST_DWithin i WHERE uwzględniają teraz mnożnik 1.5 dla wysokości maksymalnej
+-- JOIN temporary.L_infrastruktura_lokalna i ON ST_DWithin(s.wkb_geometry, i.wkb_geometry, s.max_val * 1.5)
+-- WHERE ST_Distance(s.wkb_geometry, i.wkb_geometry) < (s.max_val * 1.5) 
+--   AND s.max_val > 0
+-- ORDER BY s.ogc_fid, ST_Distance(s.wkb_geometry, i.wkb_geometry) ASC;
+
+-- -- KROK 3: Budowa indeksu przestrzennego dla warstwy wynikowej
+-- CREATE INDEX idx_wynik_turystyka_geom ON analityka.L_drzewa_zagrazajace USING GIST(wkb_geometry);
+
+---------------------------------------------------------------------------------------------------------------------------------------
+-- Zapytanie SQL nr 2: Kompleksowa inwentaryzacja i priorytetyzacja drzew zagrażających infrastrukturze
+---------------------------------------------------------------------------------------------------------------------------------------
+-- Cel analityczny: Identyfikacja wszystkich segmentów drzew, których zasięg upadku (1.5 * H) koliduje z infrastrukturą.
+-- Interpretacja:   Każdy wiersz reprezentuje jedno drzewo zagrażające. Dodatkowe kolumny (liczba i lista obiektów) 
+--                  pozwalają na szybką ocenę skali ryzyka – od punktowych zagrożeń (1 obiekt) po klastry o wysokim 
+--                  potencjale szkód (wiele obiektów w zasięgu jednego pnia).
+-- Wynik:           Warstwa poligonowa drzew z pełną informacją o celu zagrożenia i dystansie kolizyjnym.
+
+-- KROK 1: Czyszczenie starej tabeli
 DROP TABLE IF EXISTS analityka.L_drzewa_zagrazajace CASCADE;
 
--- KROK 2: Selekcja unikalnych segmentów spełniających warunek zwiększonego zasięgu rażenia
+-- KROK 2: Agregacja zagrożeń dla każdego segmentu drzewa
 CREATE TABLE analityka.L_drzewa_zagrazajace AS
-SELECT DISTINCT ON (s.ogc_fid)
-    ROW_NUMBER() OVER () AS id_qgis, -- Unikalny klucz dla QGIS
-    s.ogc_fid AS segment_id,
-    s.max_val AS wysokosc_m,
-    i.typ AS zagrozenie_dla,
-    ROUND(ST_Distance(s.wkb_geometry, i.wkb_geometry)::numeric, 2) AS dystans_m,
-    ST_SetSRID(s.wkb_geometry, 2180)::geometry(MultiPolygon, 2180) AS wkb_geometry
-FROM raw.segments_2025 s
--- ST_DWithin i WHERE uwzględniają teraz mnożnik 1.5 dla wysokości maksymalnej
-JOIN temporary.L_infrastruktura_lokalna i ON ST_DWithin(s.wkb_geometry, i.wkb_geometry, s.max_val * 1.5)
-WHERE ST_Distance(s.wkb_geometry, i.wkb_geometry) < (s.max_val * 1.5) 
-  AND s.max_val > 0
-ORDER BY s.ogc_fid, ST_Distance(s.wkb_geometry, i.wkb_geometry) ASC;
+WITH wszystkie_kolizje AS (
+    SELECT 
+        s.ogc_fid AS segment_id,
+        s.max_val AS wysokosc_m,
+        i.typ AS typ_obiektu,
+        ST_Distance(s.wkb_geometry, i.wkb_geometry) AS dystans,
+        s.wkb_geometry
+    FROM raw.segments_2025 s
+    JOIN temporary.L_infrastruktura_lokalna i ON ST_DWithin(s.wkb_geometry, i.wkb_geometry, s.max_val * 1.5)
+    WHERE ST_Distance(s.wkb_geometry, i.wkb_geometry) < (s.max_val * 1.5) 
+      AND s.max_val > 0
+)
+SELECT 
+    ROW_NUMBER() OVER () AS id_qgis,
+    segment_id,
+    wysokosc_m,
+    -- Liczymy, dla ilu obiektów to konkretne drzewo zagraża
+    COUNT(*) AS liczba_zagrozonych_obiektow,
+    -- Tworzymy listę typów tych obiektów (np. "Droga, Sciezka")
+    string_agg(DISTINCT typ_obiektu, ', ') AS lista_zagrozen,
+    -- Wybieramy najmniejszy dystans do jakiegokolwiek obiektu
+    ROUND(MIN(dystans)::numeric, 2) AS min_dystans_m,
+    ST_SetSRID(wkb_geometry, 2180)::geometry(MultiPolygon, 2180) AS wkb_geometry
+FROM wszystkie_kolizje
+GROUP BY segment_id, wysokosc_m, wkb_geometry
+-- Sortujemy od najbardziej "szkodliwych" drzew
+ORDER BY liczba_zagrozonych_obiektow DESC, wysokosc_m DESC;
 
--- KROK 3: Budowa indeksu przestrzennego dla warstwy wynikowej
+-- KROK 3: Indeks pod QGIS
 CREATE INDEX idx_wynik_turystyka_geom ON analityka.L_drzewa_zagrazajace USING GIST(wkb_geometry);
 
 
