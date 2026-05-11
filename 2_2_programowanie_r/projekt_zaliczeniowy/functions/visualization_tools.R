@@ -12,7 +12,6 @@
 #' @param parameter Nazwa cechy taksacyjnej (np. "height", "age").
 #' @param title Tytuł wykresu.
 #' @param unit Jednostka miary do wyświetlenia na osi X.
-
 #' @return Obiekt klasy ggplot.
 plot_structure_comparison <- function(df_2015, df_2025, parameter, title, unit) {
   # 1. Przygotowanie danych
@@ -53,7 +52,6 @@ plot_structure_comparison <- function(df_2015, df_2025, parameter, title, unit) 
 #' @param df_2025 Dane atrybutowe 2025.
 #' @param map_2015 Warstwa geometryczna 2015.
 #' @param map_2025 Warstwa geometryczna 2025.
-
 #' @return Obiekt klasy ggplot.
 plot_species_area_change <- function(df_2015, df_2025, map_2015, map_2025) {
   # 1. Obliczanie realnej powierzchni [ha] z geometrii (st_area)
@@ -72,23 +70,23 @@ plot_species_area_change <- function(df_2015, df_2025, map_2015, map_2025) {
   # 2. Agregacja powierzchni wg gatunków (2015)
   area_per_species_2015 <- df_2015 %>%
     left_join(gdf_area_2015, by = "id") %>%
-    select(species = starts_with("species"), area_ha) %>%
-    group_by(species) %>%
+    select(species_code = starts_with("species"), area_ha) %>%
+    group_by(species_code) %>%
     summarise(total_area = sum(area_ha, na.rm = TRUE)) %>%
     mutate(year = "2015")
 
   # 3. Agregacja powierzchni wg gatunków (2025)
   area_per_species_2025 <- df_2025 %>%
     left_join(gdf_area_2025, by = "id") %>%
-    select(species = starts_with("species"), area_ha) %>%
-    group_by(species) %>%
+    select(species_code = starts_with("species"), area_ha) %>%
+    group_by(species_code) %>%
     summarise(total_area = sum(area_ha, na.rm = TRUE)) %>%
     mutate(year = "2025")
 
   # 4. Wykres słupkowy - reorder sortuje gatunki od najliczniejszego
   ggplot(
     bind_rows(area_per_species_2015, area_per_species_2025),
-    aes(x = reorder(species, -total_area), y = total_area, fill = year)
+    aes(x = reorder(species_code, -total_area), y = total_area, fill = year)
   ) +
     geom_bar(stat = "identity", position = "dodge") +
     labs(
@@ -110,32 +108,31 @@ plot_species_area_change <- function(df_2015, df_2025, map_2015, map_2025) {
 #' @param df_2025 Dane 2025.
 #' @param parameter Nazwa cechy (np. "age").
 #' @param x_axis_unit Jednostka do opisu osi X.
-
 #' @return Obiekt klasy ggplot.
 plot_structure_by_species <- function(df_2015, df_2025, parameter, x_axis_unit) {
   # 1. Wybór TOP 10 gatunków (wg liczby wydzieleń w 2025)
   top_species_list <- df_2025 %>%
-    select(sp = starts_with("species")) %>%
-    count(sp) %>%
+    select(species_code = starts_with("species")) %>%
+    count(species_code) %>%
     slice_max(n, n = 10) %>%
-    pull(sp)
+    pull(species_code)
 
   # 2. Przygotowanie danych do podziału na subploty
   top_species_distribution_2015 <- df_2015 %>%
-    select(id, species = starts_with("species"), value = starts_with(parameter)) %>%
-    filter(species %in% top_species_list) %>%
+    select(id, species_code = starts_with("species"), value = starts_with(parameter)) %>%
+    filter(species_code %in% top_species_list) %>%
     mutate(year = "2015")
 
   top_species_distribution_2025 <- df_2025 %>%
-    select(id, species = starts_with("species"), value = starts_with(parameter)) %>%
-    filter(species %in% top_species_list) %>%
+    select(id, species_code = starts_with("species"), value = starts_with(parameter)) %>%
+    filter(species_code %in% top_species_list) %>%
     mutate(year = "2025")
 
   # 3. Wykres z użyciem facet_wrap (tworzy sub-ploty dla każdego gatunku)
   ggplot(bind_rows(top_species_distribution_2015, top_species_distribution_2025), aes(x = value, fill = year)) +
     geom_histogram(position = "identity", alpha = 0.5, bins = 20, color = "white") +
     # 'free_y' dopasowuje skalę Y do każdego gatunku
-    facet_wrap(~species, scales = "free_y") +
+    facet_wrap(~species_code, scales = "free_y") +
     labs(
       title = paste(str_to_title(parameter), "Distribution by Species"),
       x = x_axis_unit,

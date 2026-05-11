@@ -8,7 +8,6 @@
 #'
 #' @param df_input Surowa tabela wczytana z pliku f_storey_species.txt.
 #' @param year_suffix Rok danych (np. "2015"), używany jako sufiks kolumn.
-#'
 #' @return Obiekt klasy data.frame z ujednoliconymi nazwami i unikalnym kluczem ID.
 prepare_forest_data <- function(df_input, year_suffix) {
   processed <- df_input %>%
@@ -27,14 +26,14 @@ prepare_forest_data <- function(df_input, year_suffix) {
     filter(storey_cd == "DRZEW", sp_rank_order_act == 1) %>%
     # Mapowanie technicznych nazw BDL na czytelne nazwy angielskie
     select(
-      id = arodes_int_num, # Numer porządkowy wydzielenia
+      id = arodes_int_num,  # Numer porządkowy wydzielenia
       species = species_cd, # Kod gatunku (np. SO = sosna, BK = buk)
-      age = species_age, # Wiek drzewostanu dla danego gatunku
-      height = height, # Przeciętna wysokość [m]
-      dbh = bhd, # Przeciętna pierśnica (średnica) [cm]
-      volume = volume # Miąższość (zasobność) [m3/ha]
+      age = species_age,    # Wiek drzewostanu dla danego gatunku
+      height = height,      # Przeciętna wysokość [m]
+      dbh = bhd,            # Przeciętna pierśnica (średnica) [cm]
+      volume = volume       # Miąższość (zasobność) [m3/ha]
     ) %>%
-    # Konwersja ID na tekst (niezbędne do poprawnego działania Inner Join)
+    # Konwersja ID na tekst (potrzebne do Inner Join)
     mutate(id = as.character(id))
 
   # Dynamiczne dodanie roku do nazw kolumn (np. height -> height_2015)
@@ -51,7 +50,6 @@ prepare_forest_data <- function(df_input, year_suffix) {
 #'
 #' @param df_2015 Przetworzone dane z roku 2015.
 #' @param df_2025 Przetworzone dane z roku 2025.
-#'
 #' @return Tabela porównawcza (Master Table) zawierająca wartości bazowe i różnice.
 create_comparison_table <- function(df_2015, df_2025) {
   # Łączenie tabel po unikalnym ID (Inner Join zostawia tylko wspólne rekordy)
@@ -61,9 +59,9 @@ create_comparison_table <- function(df_2015, df_2025) {
   # Obliczanie różnic (Deltas) i flagowanie zmian składu
   comparison <- comparison %>%
     mutate(
-      diff_height = height_2025 - height_2015, # Przyrost wysokości
-      diff_volume = volume_2025 - volume_2015, # Zmiana zasobności
-      diff_dbh = dbh_2025 - dbh_2015, # Przyrost grubości (pierśnicy)
+      difference_height = height_2025 - height_2015, # Przyrost wysokości
+      difference_volume = volume_2025 - volume_2015, # Zmiana zasobności
+      difference_dbh = dbh_2025 - dbh_2015, # Przyrost grubości (pierśnicy)
       # Logiczna weryfikacja czy kod gatunku uległ zmianie (YES/NO)
       species_change = if_else(species_2015 != species_2025, "YES", "NO")
     )
@@ -77,7 +75,6 @@ create_comparison_table <- function(df_2015, df_2025) {
 #' @description Przygotowuje tabelę powierzchni do analiz statystycznych (bez geometrii).
 #'
 #' @param forest_layer Obiekt klasy sf wczytany z pliku .shp.
-#'
 #' @return Dataframe zawierający ID wydzielenia oraz jego powierzchnię [ha].
 get_subarea_areas <- function(forest_layer) {
   areas <- forest_layer %>%

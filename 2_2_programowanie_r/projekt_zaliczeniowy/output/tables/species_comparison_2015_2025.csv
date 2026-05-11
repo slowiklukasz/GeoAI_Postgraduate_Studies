@@ -1,4 +1,4 @@
-id,species_2015,age_2015,height_2015,dbh_2015,volume_2015,species_2025,age_2025,height_2025,dbh_2025,volume_2025,diff_height,diff_volume,diff_dbh,species_change
+id,species_2015,age_2015,height_2015,dbh_2015,volume_2015,species_2025,age_2025,height_2025,dbh_2025,volume_2025,difference_height,difference_volume,difference_dbh,species_change
 321002490,BK       ,106,28,39,351.0368957519531,BK       ,116,30,43,204.3618708513092,2,-146.67502490064393,4,NO
 321000409,ŚW       ,66,26,31,135.83274841308594,ŚW       ,76,27,31,83.6181636855521,1,-52.21458472753383,0,NO
 321004655,BK       ,71,24,29,141.6026153564453,BK       ,81,27,32,249.5771339889118,3,107.9745186324665,3,NO
