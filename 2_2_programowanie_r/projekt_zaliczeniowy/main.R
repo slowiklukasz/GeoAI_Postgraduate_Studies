@@ -1,11 +1,14 @@
 ##############################################################################
-# 1. SKRÓTY KLAWISZOWE -------------------------------------------------------
+# 1. INSTRUKCJA URUCHOMIENIA / RUN INSTRUCTIONS ------------------------------
 ##############################################################################
 
-# ctrl+shift+c  - komentowanie/odkomentowanie kodu
-# ctrl+shift+r  - tworzenie nowej sekcji kodu
-# ctrl+alt+r    - uruchomienie całego skryptu
+# KROK 1: Konfiguracja ścieżek do katalogów z danymi BDL w sekcji nr 2 (DIR_IN_...).
+# KROK 2: Uruchomienie przetwarzania skrótem: CTRL + ALT + R.
+# KROK 3: Automatyczne generowanie wyników (CSV, Wykresy, Mapy) w katalogu /output.
 
+# Skrypt zapewnia automatyczną weryfikację środowiska oraz instalację 
+# brakujących bibliotek. Architektura projektu oparta jest na modułach tematycznych 
+# zlokalizowanych w katalogu /functions.
 
 ##############################################################################
 # 2. KONFIGURACJA ŚCIEŻEK ----------------------------------------------------

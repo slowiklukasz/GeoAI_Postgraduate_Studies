@@ -17,7 +17,7 @@
 
 # --- Output ---
 # Ignoruje folder z wynikami, który stworzy skrypt
-**/output/
+# **/output/
 
 # --- OS junk ---
 .DS_Store
