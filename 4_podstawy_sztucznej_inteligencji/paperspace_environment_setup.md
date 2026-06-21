@@ -33,7 +33,7 @@ conda --version
 source /notebooks/miniconda/etc/profile.d/conda.sh
 ```
 ```bash
-conda create -n treeseg python=3.8 -y
+conda create -n treeseg python=3.10 -y
 ```
 ```bash
 conda activate treeseg
@@ -98,8 +98,12 @@ pip install torch-geometric
 ## Step 8 – Install remaining libraries
 
 ```bash
-pip install torchmetrics pandas laspy
-pip install open3d==0.17.0
+pip install "laspy[lazrs]" torchmetrics pandas
+pip install open3d==0.19.0
+```
+
+```bash
+pip install seaborn==0.13.2
 ```
 
 > **Notes:**
@@ -124,6 +128,9 @@ ls /notebooks/Pointcept/Pointcept/libs/pointops
 ---
 
 ## Step 10 – Compile pointops (custom CUDA extension)
+```bash
+pip install "setuptools<70.0.0"
+```
 
 ```bash
 export CUDA_HOME=/usr/local/cuda
@@ -139,6 +146,7 @@ python setup.py install
 ```bash
 pip install wandb
 ```
+
 ---
 
 ## Step 12 – Register Jupyter kernel
@@ -166,7 +174,7 @@ Kernel → Change Kernel → LiDAR Tree Seg
 
 ```python
 import sys
-sys.path.insert(0, "/notebooks/miniconda/envs/treeseg/lib/python3.8/site-packages")
+sys.path.insert(0, "/notebooks/miniconda/envs/treeseg/lib/python3.10/site-packages")
 sys.path.insert(0, "/notebooks/Pointcept/Pointcept")
 
 import importlib
@@ -230,8 +238,7 @@ Then select the `LiDAR Tree Seg` kernel in your notebook as usual.
 | `conda activate` fails with `Run 'conda init' first` | Shell not initialized | Use `source /notebooks/miniconda/etc/profile.d/conda.sh` before activating |
 | `libs/pointops` directory empty after clone | Repo uses git submodules | Clone with `--recurse-submodules` |
 | `torch_scatter` / `torch_sparse` fail to load | PyTorch version mismatch | Ensure torch==2.1.0 is installed before PyG libs |
-| `lazrs` fails to install | Requires Python ≥ 3.9 | Install `laspy` without `[lazrs]` extra |
-| `open3d` fails on Python 3.8 | Dependency `puccinialin` requires Python ≥ 3.9 | Use `open3d==0.17.0` or skip (optional) |
+
 | `scipy` broken, numpy warning | NumPy ≥ 1.27 incompatible | Pin with `pip install "numpy>=1.19.5,<1.27.0"` |
 | Wrong torch version in notebook (e.g. 2.10) | Notebook using system Python, not conda env | Re-register kernel: `python -m ipykernel install --user --name treeseg` |
 
