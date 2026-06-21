@@ -141,6 +141,26 @@ python setup.py install
 
 ---
 
+
+```bash
+export CUDA_HOME=/usr/local/cuda
+export TORCH_CUDA_ARCH_LIST="8.6"
+```
+
+
+```bash
+apt-get update && apt-get install libsparsehash-dev -y
+```
+
+```bash
+cd /notebooks/Pointcept/Pointcept/libs/pointgroup_ops && python setup.py install
+```
+
+```bash
+git clone https://github.com/Pointcept/PointTransformerV3.git PTv3_Standalone
+```
+
+
 ## Step 11 – Install wandb
 
 ```bash
@@ -148,6 +168,8 @@ pip install wandb
 ```
 
 ---
+
+
 
 ## Step 12 – Register Jupyter kernel
 
@@ -190,6 +212,7 @@ checks = [
     ('open3d',          lambda m: f"v{m.__version__}"),
     ('torchmetrics',    lambda m: f"v{m.__version__}"),
     ('pointops',        lambda m: 'OK'),
+    ('pointgroup_ops',  lambda m: 'OK'),
 ]
 
 print('=== VERIFICATION ===\n')
