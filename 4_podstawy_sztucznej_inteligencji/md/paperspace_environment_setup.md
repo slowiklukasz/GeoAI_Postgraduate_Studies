@@ -220,10 +220,10 @@ ok, fail = 0, 0
 for name, info_fn in checks:
     try:
         mod = importlib.import_module(name)
-        print(f'  ✅  {name:<20} {info_fn(mod)}')
+        print(f'  {name:<20} {info_fn(mod)}')
         ok += 1
     except Exception as e:
-        print(f'  ❌  {name:<20} ERROR: {e}')
+        print(f'  {name:<20} ERROR: {e}')
         fail += 1
 
 print(f'\nResult: {ok} OK, {fail} errors')
