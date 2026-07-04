@@ -227,7 +227,7 @@ for name, info_fn in checks:
         fail += 1
 
 print(f'\nResult: {ok} OK, {fail} errors')
-print('\n🎉 All good!' if fail == 0 else '\n⚠️  Check errors above.')
+print('\n All good!' if fail == 0 else '\n  Check errors above.')
 ```
 
 ---
@@ -254,22 +254,10 @@ Then select the `LiDAR Tree Seg` kernel in your notebook as usual.
 
 ---
 
-## Known Issues
-
-| Issue | Cause | Fix |
-|---|---|---|
-| `conda activate` fails with `Run 'conda init' first` | Shell not initialized | Use `source /notebooks/miniconda/etc/profile.d/conda.sh` before activating |
-| `libs/pointops` directory empty after clone | Repo uses git submodules | Clone with `--recurse-submodules` |
-| `torch_scatter` / `torch_sparse` fail to load | PyTorch version mismatch | Ensure torch==2.1.0 is installed before PyG libs |
-
-| `scipy` broken, numpy warning | NumPy ≥ 1.27 incompatible | Pin with `pip install "numpy>=1.19.5,<1.27.0"` |
-| Wrong torch version in notebook (e.g. 2.10) | Notebook using system Python, not conda env | Re-register kernel: `python -m ipykernel install --user --name treeseg` |
-
----
 
 ## Flash Attention
 
-PTv3 supports FlashAttention but it requires CUDA ≥ 11.6 and a supported architecture. The Quadro RTX 5000 (sm_86) should be compatible. To enable:
+PTv3 supports FlashAttention but it requires CUDA ≥ 11.6 and a supported architecture.
 
 ```bash
 pip install flash-attn --no-build-isolation

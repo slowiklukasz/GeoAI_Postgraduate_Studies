@@ -12,6 +12,8 @@
 # --- Data & Archives ---
 # Ignoruje folder data (widzę go w projekt_zaliczeniowy)
 **/data/
+**/temp/
+
 **/*.zip
 **/*.tar.gz
 
