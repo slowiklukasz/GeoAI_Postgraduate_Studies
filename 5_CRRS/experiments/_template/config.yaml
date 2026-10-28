@@ -1,0 +1,52 @@
+# Package config – copy this folder to experiments/<ID>_<name>/ and replace PXX_name everywhere.
+# Paths are relative to the repo root.
+
+experiment:                       # description of the package (read by the agents and the comparison)
+  id: PXX
+  name: name
+  change: "what differs from P00_baseline"
+  reference_type: tls_raw         # tls_raw = TLS Arbor result with the same settings; tls_segfix = final
+  clip: none                      # none | "centre x=…, y=…, radius=… m"
+  arbor:                          # settings used to produce the Arbor CSVs
+    read_fraction: 0.2
+    other: "defaults"
+  threedfin: "defaults"
+  notes: ""
+
+reference:
+  name: TLS
+  csv: experiments/PXX_name/data/arbor/tree_list_TLS.csv
+
+inputs:
+  arbor_csv_dir: experiments/PXX_name/data/arbor
+  threedfin_xlsx_dir: experiments/PXX_name/data/3dfin
+
+output_dir: experiments/PXX_name/outputs
+
+region: null   # clipped packages: {x: .., y: .., radius: clip radius − 3 m}
+
+# ---- keep identical in all packages ----
+arbor:
+  exclude_status: ["W3 allometry"]
+  max_root_above_bh: 1.0
+  sensitivity:                       # extra detection runs with other filters (step "sensitivity")
+    no_filter: []                                        # all segments -> over-segmentation
+    measured_only: ["W3 allometry", "W2 no valid measure"]  # trees with a DBH -> DBH measurability
+
+matching:
+  max_dist: 0.5
+  duplicate_dist: 0.3
+  save_plot: true
+  show_ids: false
+
+accuracy:
+  parameters: [dbh, h, v, xy_offset]
+  outlier_dh: 3.0                      # [m] pairs with |ΔH| above this are flagged as outliers
+  tree_subset: all          # packages compare trends on all matched trees; selected trees only in F00
+
+stem_profiles:
+  reference_dataset: TLS    # 3DFin file name of TLS without .xlsx
+  min_pairs: 5
+  bands: {lower: [1.0, 3.0], upper: [6.0, 9.0], all: [1.0, 9.0]}   # [m] height bands
+
+selected_trees: []

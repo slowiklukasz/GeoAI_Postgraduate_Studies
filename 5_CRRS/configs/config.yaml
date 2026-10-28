@@ -1,0 +1,38 @@
+# Paths are relative to the directory the script is run from (repo root).
+
+reference:
+  name: TLS_SegFix                                   # label used in tables and plots
+  csv: data/reference/tree_list_TLS_SegFix.csv      # Arbor tree list of the corrected TLS
+
+inputs:
+  arbor_csv_dir: data/arbor                          # Arbor tree_list_<dataset>.csv files
+  threedfin_xlsx_dir: data/3dfin                     # 3DFin <dataset>.xlsx files
+
+output_dir: outputs
+
+region: null   # optional analysis area: {x: .., y: .., radius: ..} [m]; trees outside are ignored everywhere
+
+arbor:
+  exclude_status: ["W3 allometry"]   # main filter: small segments, mostly stem-base fragments
+  max_root_above_bh: 1.0             # [m] drop artefacts whose root lies far above the breast-height point
+  sensitivity:                       # extra detection runs with other filters (step "sensitivity")
+    no_filter: []                                           # all segments -> over-segmentation
+    measured_only: ["W3 allometry", "W2 no valid measure"]  # trees with a DBH -> DBH measurability
+
+matching:
+  max_dist: 0.5        # [m] maximum XY distance of a matched pair
+  duplicate_dist: 0.3  # [m] unmatched detection this close to a matched one = duplicate
+  save_plot: true
+  show_ids: true
+
+accuracy:
+  parameters: [dbh, h, v, xy_offset]   # dbh/v use only pairs where both trees are "measured"
+  outlier_dh: 3.0                      # [m] pairs with |ΔH| above this are flagged as outliers
+  tree_subset: selected                # selected = trees in selected_trees, all = every matched tree
+
+stem_profiles:
+  reference_dataset: TLS   # 3DFin dataset used as the profile reference (file name without .xlsx)
+  min_pairs: 5             # heights with fewer compared trees are not plotted or used in bands
+  bands: {lower: [1.0, 3.0], upper: [6.0, 9.0], all: [1.0, 9.0]}   # [m] height bands
+
+selected_trees: []   # reference tree IDs for the per-tree analysis (filled after tree selection)
