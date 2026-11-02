@@ -170,8 +170,6 @@ def plot_stem_profile(
     compared trees per height.
     """
     datasets = list(dict.fromkeys(summary_df["dataset"]))
-    if not (summary_df["n"] >= min_pairs).any():
-        raise ValueError(f"No section height has at least {min_pairs} compared trees.")
     if len(datasets) > len(_SERIES_COLORS):
         raise ValueError(f"At most {len(_SERIES_COLORS)} datasets can be shown in one plot.")
 

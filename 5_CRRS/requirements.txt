@@ -4,3 +4,4 @@ scipy
 matplotlib
 pyyaml
 openpyxl
+laspy[lazrs]  # scripts/extract_tree.py only

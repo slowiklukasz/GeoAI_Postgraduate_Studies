@@ -9,30 +9,21 @@ import shutil
 import pandas as pd
 
 from pcbench.config import Config, load_config
-from pcbench.loaders import (filter_region, load_3dfin_dir, load_3dfin_sections_dir,
-                             load_arbor_dir, load_arbor_tree_list)
-from pcbench.pipeline import (load_link_table, run_accuracy, run_detection_variants,
-                              run_matching, run_stem_profiles)
+from pcbench.loaders import (load_3dfin_dir, load_3dfin_sections_dir, load_arbor_dir,
+                             load_arbor_tree_list)
+from pcbench.pipeline import load_link_table, run_accuracy, run_matching, run_stem_profiles
 
-STEPS = ("matching", "accuracy", "stem_profiles", "sensitivity")
+STEPS = ("matching", "accuracy", "stem_profiles")
 
 logger = logging.getLogger("pcbench")
 
 
-def load_arbor_inputs(
-    config: Config, exclude_status: tuple[str, ...] | None = None,
-) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
-    """Reference trees and the Arbor results of all compared scanners.
-
-    exclude_status overrides config.exclude_status (used by the sensitivity step).
-    """
-    statuses = config.exclude_status if exclude_status is None else exclude_status
-    reference_df = load_arbor_tree_list(config.reference_csv, statuses, config.max_root_above_bh)
-    tests_dfs = load_arbor_dir(config.arbor_csv_dir, statuses,
+def load_arbor_inputs(config: Config) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
+    """Reference trees and the Arbor results of all compared scanners."""
+    reference_df = load_arbor_tree_list(config.reference_csv, config.exclude_status,
+                                        config.max_root_above_bh)
+    tests_dfs = load_arbor_dir(config.arbor_csv_dir, config.exclude_status,
                                config.max_root_above_bh, skip=[config.reference_csv])
-    reference_df = filter_region(reference_df, config.region)
-    tests_dfs = {name: filter_region(df, config.region, buffer=config.max_dist)
-                 for name, df in tests_dfs.items()}
     return reference_df, tests_dfs
 
 
@@ -41,9 +32,7 @@ def step_matching(config: Config) -> None:
     reference_df, arbor_dfs = load_arbor_inputs(config)
     logger.info("Reference %s: %d trees", config.reference_name, len(reference_df))
 
-    threedfin_dfs = {name: filter_region(df, config.region, buffer=config.max_dist)
-                     for name, df in load_3dfin_dir(config.threedfin_xlsx_dir).items()}
-    runs = {"arbor": arbor_dfs, "3dfin": threedfin_dfs}
+    runs = {"arbor": arbor_dfs, "3dfin": load_3dfin_dir(config.threedfin_xlsx_dir)}
     for run_name, tests_dfs in runs.items():
         if not tests_dfs:
             logger.warning("No %s files found – skipping this matching run", run_name)
@@ -56,7 +45,6 @@ def step_matching(config: Config) -> None:
             duplicate_dist=config.duplicate_dist,
             save_plot=config.save_plot,
             show_ids=config.show_ids,
-            region=config.region,
         )
         logger.info("Matching %s:\n%s", run_name, summary_df.round(3).to_string(index=False))
 
@@ -87,7 +75,6 @@ def step_accuracy(config: Config) -> None:
         output_dir=config.output_dir / "accuracy" / "arbor",
         parameters=config.accuracy_parameters,
         tree_ids=selected_tree_ids(config),
-        outlier_dh=config.outlier_dh,
     )
     logger.info("Accuracy arbor:\n%s", summary_df.round(3).to_string(index=False))
 
@@ -105,28 +92,9 @@ def step_stem_profiles(config: Config) -> None:
         tree_ids=selected_tree_ids(config),
         min_pairs=config.profile_min_pairs,
         save_plot=config.save_plot,
-        bands=config.profile_bands,
     )
     logger.info("Stem profiles: %d dataset(s), %d height sections",
                 summary_df["dataset"].nunique(), summary_df["height"].nunique())
-
-
-def step_sensitivity(config: Config) -> None:
-    """Detection metrics of the Arbor results for the main filter and every sensitivity variant."""
-    if not config.sensitivity:
-        logger.warning("No arbor.sensitivity variants in the config – skipping sensitivity")
-        return
-    variants = {"main": config.exclude_status, **config.sensitivity}
-    combined = run_detection_variants(
-        {name: load_arbor_inputs(config, statuses) for name, statuses in variants.items()},
-        output_dir=config.output_dir / "sensitivity",
-        max_dist=config.max_dist,
-        duplicate_dist=config.duplicate_dist,
-        region=config.region,
-    )
-    columns = ["variant", "n_reference", "dataset", "TP", "FN", "FP", "FP_duplicate",
-               "FP_extra", "precision", "recall", "F1"]
-    logger.info("Detection variants:\n%s", combined[columns].round(3).to_string(index=False))
 
 
 def main() -> None:
@@ -147,8 +115,6 @@ def main() -> None:
         step_accuracy(config)
     if args.step in ("stem_profiles", "all"):
         step_stem_profiles(config)
-    if args.step in ("sensitivity", "all"):
-        step_sensitivity(config)
 
 
 if __name__ == "__main__":

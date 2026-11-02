@@ -7,9 +7,6 @@ from typing import Any
 import yaml
 
 
-DEFAULT_BANDS = {"lower": (1.0, 3.0), "upper": (6.0, 9.0), "all": (1.0, 9.0)}
-
-
 @dataclass(frozen=True)
 class Config:
     """Analysis settings read from the YAML config."""
@@ -31,10 +28,6 @@ class Config:
     tree_subset: str
     profile_reference: str
     profile_min_pairs: int
-    region: tuple[float, float, float] | None  # (x, y, radius) or None = whole plot
-    sensitivity: dict[str, tuple[str, ...]]     # filter variants {name: exclude_status}
-    outlier_dh: float                           # [m] |ΔH| above which a pair is an outlier
-    profile_bands: dict[str, tuple[float, float]]  # stem-profile height bands [m]
 
 
 def _get(section: dict[str, Any], key: str, where: str) -> Any:
@@ -61,17 +54,6 @@ def load_config(path: str | Path) -> Config:
     if tree_subset not in ("selected", "all"):
         raise ValueError("accuracy.tree_subset must be 'selected' or 'all'")
 
-    region_raw = raw.get("region")
-    region = None
-    if region_raw:
-        region = (float(_get(region_raw, "x", "region.")), float(_get(region_raw, "y", "region.")),
-                  float(_get(region_raw, "radius", "region.")))
-
-    sensitivity = {str(name): tuple(statuses)
-                   for name, statuses in (arbor.get("sensitivity") or {}).items()}
-    bands_raw = stem_profiles.get("bands") or DEFAULT_BANDS
-    profile_bands = {str(name): (float(low), float(high)) for name, (low, high) in bands_raw.items()}
-
     return Config(
         source_path=config_path,
         reference_name=str(_get(reference, "name", "reference.")),
@@ -90,8 +72,4 @@ def load_config(path: str | Path) -> Config:
         tree_subset=tree_subset,
         profile_reference=str(_get(stem_profiles, "reference_dataset", "stem_profiles.")),
         profile_min_pairs=int(_get(stem_profiles, "min_pairs", "stem_profiles.")),
-        region=region,
-        sensitivity=sensitivity,
-        outlier_dh=float(accuracy.get("outlier_dh", 3.0)),
-        profile_bands=profile_bands,
     )

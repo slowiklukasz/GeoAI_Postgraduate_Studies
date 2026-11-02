@@ -123,18 +123,3 @@ def load_3dfin_sections_dir(directory: str | Path) -> dict[str, pd.DataFrame]:
         for path in sorted(Path(directory).glob("*.xlsx"))
         if not path.name.startswith("~$")
     }
-
-
-def filter_region(trees_df: pd.DataFrame,
-                  region: tuple[float, float, float] | None,
-                  buffer: float = 0.0) -> pd.DataFrame:
-    """Keep trees whose position lies within a circle (x, y, radius + buffer); None keeps all.
-
-    Compared datasets are loaded with buffer = matching distance, so that a reference tree
-    just inside the circle can still find its partner just outside it.
-    """
-    if region is None:
-        return trees_df
-    x, y, radius = region
-    inside = np.hypot(trees_df["x"] - x, trees_df["y"] - y) <= radius + buffer
-    return trees_df[inside].reset_index(drop=True)

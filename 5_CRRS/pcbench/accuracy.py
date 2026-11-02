@@ -120,12 +120,8 @@ def _summarise(differences_df: pd.DataFrame, keys: list[str],
         n=("diff", "size"),
         bias=("diff", "mean"),
         rmse=("diff", lambda d: float(np.sqrt(np.mean(np.square(d))))),
-        sd=("diff", "std"),
         ref_mean=(ref_column, "mean"),
     ).reset_index()
-    summary_df["se"] = summary_df["sd"] / np.sqrt(summary_df["n"])
-    summary_df["z"] = np.where((summary_df["se"] == 0) & (summary_df["bias"] == 0), 0.0,
-                               summary_df["bias"] / summary_df["se"])
     summary_df["bias_pct"] = summary_df["bias"] / summary_df["ref_mean"] * 100
     summary_df["rmse_pct"] = summary_df["rmse"] / summary_df["ref_mean"] * 100
     return summary_df
@@ -134,33 +130,10 @@ def _summarise(differences_df: pd.DataFrame, keys: list[str],
 def accuracy_summary(differences_df: pd.DataFrame) -> pd.DataFrame:
     """Bias and RMSE per dataset and parameter.
 
-    Returns: dataset, parameter, unit, n, bias, rmse, sd, ref_mean, se, z,
-    bias_pct, rmse_pct (percentages relative to the mean reference value;
-    empty for xy_offset). z = bias / se, se = sd / sqrt(n).
+    Returns: dataset, parameter, unit, n, bias, rmse, ref_mean, bias_pct, rmse_pct
+    (percentages relative to the mean reference value; empty for xy_offset).
     """
     return _summarise(differences_df, ["dataset", "parameter", "unit"])
-
-
-def flag_outlier_pairs(differences_df: pd.DataFrame, max_abs_dh: float) -> pd.DataFrame:
-    """Add `outlier_pair`: True for every row of a pair whose height difference exceeds
-    max_abs_dh [m] (typically a reference tree matched to a fragment)."""
-    is_outlier_h = (differences_df["parameter"] == "h") & (differences_df["diff"].abs() > max_abs_dh)
-    outliers = set(zip(differences_df.loc[is_outlier_h, "dataset"],
-                       differences_df.loc[is_outlier_h, "ref_id"]))
-    keys = zip(differences_df["dataset"], differences_df["ref_id"])
-    return differences_df.assign(outlier_pair=[key in outliers for key in keys])
-
-
-def common_tree_pairs(differences_df: pd.DataFrame,
-                      parameters: Sequence[str] = ("dbh", "v")) -> pd.DataFrame:
-    """Rows of the given parameters for reference trees compared in every dataset,
-    so that datasets are compared on the same trees."""
-    rows = differences_df[differences_df["parameter"].isin(parameters)]
-    datasets = rows["dataset"].nunique()
-    counts = rows.groupby(["parameter", "ref_id"])["dataset"].nunique()
-    common = counts[counts == datasets].index
-    keys = pd.MultiIndex.from_frame(rows[["parameter", "ref_id"]])
-    return rows[keys.isin(common)]
 
 
 def stem_profile_differences(
@@ -229,30 +202,3 @@ def stem_profile_summary(differences_df: pd.DataFrame) -> pd.DataFrame:
     Returns: dataset, height, n, bias, rmse, ref_mean, bias_pct, rmse_pct (cm / %).
     """
     return _summarise(differences_df, ["dataset", "height"], ref_column="ref_diameter")
-
-
-def stem_profile_bands(
-    summary_df: pd.DataFrame,
-    bands: Mapping[str, tuple[float, float]],
-    min_pairs: int,
-) -> pd.DataFrame:
-    """Mean bias / RMSE per dataset and height band, plus stem reach.
-
-    Only heights with n >= min_pairs are used. Band value = mean of the per-height values.
-    Rows with band "reach" give the highest section with n >= min_pairs (max_height).
-    Returns: dataset, band, low, high, n_heights, mean_bias, mean_rmse, max_height
-    """
-    reliable = summary_df[summary_df["n"] >= min_pairs]
-    rows: list[dict[str, object]] = []
-    for dataset_name, group in reliable.groupby("dataset", sort=False):
-        for band, (low, high) in bands.items():
-            in_band = group[(group["height"] >= low) & (group["height"] <= high)]
-            rows.append({"dataset": dataset_name, "band": band, "low": low, "high": high,
-                         "n_heights": len(in_band),
-                         "mean_bias": in_band["bias"].mean() if len(in_band) else np.nan,
-                         "mean_rmse": in_band["rmse"].mean() if len(in_band) else np.nan})
-        rows.append({"dataset": dataset_name, "band": "reach", "n_heights": len(group),
-                     "max_height": group["height"].max()})
-    columns = ["dataset", "band", "low", "high", "n_heights", "mean_bias", "mean_rmse",
-               "max_height"]
-    return pd.DataFrame(rows, columns=columns)

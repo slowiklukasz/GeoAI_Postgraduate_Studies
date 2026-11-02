@@ -132,7 +132,6 @@ def build_link_table(
     duplicate_dist: float = 0.3,
     columns: tuple[str, str, str] = ("id", "x", "y"),
     attributes: Sequence[str] = ("status", "h"),
-    fp_region: tuple[float, float, float] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Match several datasets against one reference (star layout).
 
@@ -142,8 +141,6 @@ def build_link_table(
     duplicate_dist : FP closer than this to a matched test tree counts as a duplicate [m]
     columns        : common column names (id, x, y) used in all DataFrames
     attributes     : columns copied into the details table for both sides
-    fp_region      : (x, y, radius) – unmatched test trees outside this circle are ignored
-                     (they lie in the buffer around the analysis region, not errors)
 
     Returns:
         link_df    – one row per reference tree; for each dataset the matched
@@ -163,11 +160,6 @@ def build_link_table(
             reference_df, test_df, max_dist,
             reference_cols=columns, test_cols=columns,
         )
-        if fp_region is not None:
-            id_col, x_col, y_col = columns
-            cx, cy, radius = fp_region
-            outside = test_df.loc[np.hypot(test_df[x_col] - cx, test_df[y_col] - cy) > radius, id_col]
-            match_df = match_df[~((match_df["match"] == "FP") & match_df["test_id"].isin(outside))]
         matched_df = match_df.loc[match_df["match"] == "TP", ["ref_id", "test_id", "dist"]]
         link_df = link_df.merge(
             matched_df.rename(columns={"test_id": f"{dataset_name}_id",
