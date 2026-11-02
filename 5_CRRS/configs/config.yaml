@@ -28,4 +28,4 @@ stem_profiles:
   reference_dataset: TLS   # 3DFin dataset used as the profile reference (file name without .xlsx)
   min_pairs: 5             # heights with fewer compared trees are not plotted
 
-selected_trees: []   # reference tree IDs for the per-tree analysis (filled after tree selection)
+selected_trees: [2, 61, 13, 25, 15, 17, 18, 3, 26, 10]   # reference tree IDs for the per-tree analysis (filled after tree selection)
