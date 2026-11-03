@@ -66,7 +66,7 @@ Examples of results:
 
 ### 5. Forest Point Clouds (`5_CRRS`)
 **Title:** Benchmarking Handheld Laser Scanners against TLS in a Forest Plot  
-**Description:** Comparison of three handheld laser scanners (GeoSLAM ZEB Horizon, LiGrip and a low-cost device) with terrestrial laser scanning (Trimble X7) on a plot with dense understorey: tree detection and DBH, height and volume from Arbor, stem diameter profiles from 3DFin, and visual comparison of the same trees across point clouds. Includes a Python pipeline for 1:1 tree matching (Hungarian algorithm) and bias/RMSE analysis. Joint project with Michał Kajetanek.
+**Description:** Comparison of three handheld laser scanners (GeoSLAM ZEB Horizon, LiGrip and a low-cost device) with terrestrial laser scanning (Trimble X7) on a plot with dense understorey: tree detection and DBH, height and volume from Arbor, stem diameter profiles from 3DFin, and visual comparison of the same trees across point clouds. Includes a Python pipeline for 1:1 tree matching (Hungarian algorithm) and bias/RMSE analysis.
 
 Examples of results:
 

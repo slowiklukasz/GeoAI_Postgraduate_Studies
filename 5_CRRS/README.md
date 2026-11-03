@@ -128,7 +128,3 @@ requirements.txt
 ## Data
 
 The point clouds and Arbor / 3DFin results are not included in this repository.
-
-## About
-
-Course project *Benchmarking forest point clouds* (2026), Łukasz Słowik and Michał Kajetanek.
