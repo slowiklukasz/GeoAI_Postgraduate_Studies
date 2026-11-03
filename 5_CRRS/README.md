@@ -7,11 +7,13 @@ and 3DFin stem profiles; outputs are tables and figures for a short benchmarking
 
 TLS is a relative reference, not ground truth: all results are **differences from TLS**, not errors.
 
-![The same tree in four point clouds](assets/tree_side_view.png)
-*The same tree extracted from the TLS, GeoSLAM, LiGrip and low-cost point clouds (`scripts/extract_tree.py`).*
+![The same tree in four point clouds](images/tree_side_view.png)
+*One tree in the TLS, GeoSLAM, LiGrip and low-cost point clouds, side view at the same scale
+(`scripts/extract_tree.py`): the low-cost stem is thickened by noise, the LiGrip cloud is the sparsest.*
 
-![Stem diameter differences along the stem](assets/stem_profiles.png)
-*Stem diameter differences from TLS along the stem, 3DFin (`run.py`, step `stem_profiles`).*
+![Stem cross-section at breast height](images/stem_cross_section.png)
+*The same stem cut at 1.3 m in the four point clouds (`scripts/cross_section.py`): a thin but partly occluded ring in TLS, full rings in the
+handheld clouds, the thickest and noisiest in the low-cost cloud.*
 
 ## What it does
 
@@ -76,12 +78,30 @@ python run.py --config configs/config.yaml --step sensitivity
 ```
 python scripts/select_trees.py --config configs/config.yaml --n 10 --min-height-quantile 0.5
 ```
-**Same tree in several clouds** – extracts one tree from instance-segmented LAZ files (reference tree by ID,
-the others matched by stem position), saves one LAZ per cloud and plots side views from four directions.
+
+**Same trees in several clouds** – finds the reference trees in instance-segmented LAZ files by stem position
+and plots side views from four directions at the same scale.
 
 ```
-python scripts/extract_tree.py --clouds TLS=tls.laz GeoSLAM=geoslam.laz LiGrip=ligrip.laz low-cost=low_cost.laz \
-    --reference TLS --ref-id 10 --out-dir tree_10
+# selected trees, one board per tree, no LAZ output
+python scripts/extract_tree.py --clouds-dir data/clouds --ref-csv tree_list_TLS.csv \
+    --ref-ids 2 61 13 --out-dir tree_views --plots-only
+
+# every tree of the reference list (W3 segments skipped)
+python scripts/extract_tree.py --clouds-dir data/clouds --ref-csv tree_list_TLS.csv --all-trees --out-dir tree_views --plots-only
+```
+
+- `--clouds-dir` finds one LAZ/LAS per scanner by name (tls/trimble, geoslam, ligrip, low_cost);
+  `--clouds NAME=path ...` gives them one by one.
+- Reference positions come from the Arbor tree list (X_bh, Y_bh); every cloud is matched by stem position
+  within `--max-dist` (0.5 m), so instance IDs do not need to agree between clouds.
+- Without `--plots-only`: one folder per tree with the extracted LAZ files and one figure per view direction.
+
+**Stem cross-section** – the same tree cut at breast height in all clouds, same scale and centre
+(`--overlay TLS` draws the reference in grey under the others).
+
+```
+python scripts/cross_section.py --clouds-dir data/clouds --ref-csv tree_list_TLS.csv --ref-id 16 --out cross_section_16.png
 ```
 
 ## Interpretation
@@ -99,7 +119,8 @@ configs/config.yaml     all parameters
 pcbench/                loaders, matching, accuracy, plotting, pipeline
 scripts/
   select_trees.py       proposes trees for selected_trees
-  extract_tree.py       same tree from several LAZ clouds + side-view plots
+  extract_tree.py       same trees from several LAZ clouds + side-view plots
+  cross_section.py      stem cross-section of one tree in all clouds
 assets/                 figures for this README
 requirements.txt
 ```
