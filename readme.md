@@ -63,6 +63,20 @@ Examples of results:
 <p align="center">
   <img src="4_introduction_to_artificial_intelligence\images\RMIT_example.bmp" width="80%" alt="AI Results 2">
 </p>
+
+### 5. Forest Point Clouds (`5_CRRS`)
+**Title:** Benchmarking Handheld Laser Scanners against TLS in a Forest Plot  
+**Description:** Comparison of three handheld laser scanners (GeoSLAM ZEB Horizon, LiGrip and a low-cost device) with terrestrial laser scanning (Trimble X7) on a plot with dense understorey: tree detection and DBH, height and volume from Arbor, stem diameter profiles from 3DFin, and visual comparison of the same trees across point clouds. Includes a Python pipeline for 1:1 tree matching (Hungarian algorithm) and bias/RMSE analysis. Joint project with Michał Kajetanek.
+
+Examples of results:
+
+<p align="center">
+  <img src="5_CRRS/images/tree_side_view.png" width="90%">
+</p>
+<p align="center">
+  <img src="5_CRRS/images/stem_cross_section.png" width="90%">
+</p>
+
 ---
 
 ## Technologies & Tools
@@ -70,3 +84,4 @@ Examples of results:
 *   **AI/ML:** PyTorch, PyTorch Geometric, SpConv, Pointcept
 *   **GIS/Spatial:** PostGIS, QGIS, LiDAR (las/laz), Multispectral Imagery (NDVI)
 *   **Environment:** Jupyter Notebooks, RStudio, Paperspace Gradient
+*   **Point clouds:** TLS and handheld laser scanning, Arbor, 3DFin, CloudCompare, laspy
